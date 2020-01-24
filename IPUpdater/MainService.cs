@@ -38,9 +38,23 @@ namespace IPUpdater
                     }
                     catch (Exception e)
                     {
-                        File.AppendAllText("error.txt", e.Message + Environment.NewLine);
+                        File.AppendAllText("error.txt", DateTime.Now.ToString("o") + FullException(e) + Environment.NewLine);
                     }
                 }, null, 0, 5 * 1000 * 60);
+        }
+
+        private string FullException(Exception exception)
+        {
+            var res = string.Empty;
+
+            if (exception != null)
+            {
+                res += exception.Message + Environment.NewLine;
+                res += exception.StackTrace + Environment.NewLine;
+                res += FullException(exception.InnerException);
+            }
+
+            return res;
         }
 
         public void Stop()
