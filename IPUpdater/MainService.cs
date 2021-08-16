@@ -26,14 +26,13 @@ namespace IPUpdater
                     try
                     {
                         string externalip = new WebClient().DownloadString("http://icanhazip.com");
-
                         if (_externalIP != externalip)
                         {
-                            _externalIP = externalip;
-
-                            var client = new FtpClient("home.mosalski.de", "andrej", "pushok8806386");
-                            client.Upload(Encoding.UTF8.GetBytes(externalip), "files/currentIP.txt");
-                            client.Dispose();
+                            var res = new WebClient().DownloadString($"http://mosalski.de/ip.php?hostname=a.mosalski.de&myip={externalip}");
+                            if (res == "good" || res.Contains("nochg"))
+                            {
+                                _externalIP = externalip;
+                            }
                         }
                     }
                     catch (Exception e)
