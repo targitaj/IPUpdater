@@ -25,19 +25,26 @@ namespace IPUpdater
                 {
                     try
                     {
-                        string externalip = new WebClient().DownloadString("http://icanhazip.com");
+                        string externalip = new WebClient().DownloadString("http://icanhazip.com").Replace("\n", "");
+                        Program.Log.Info("Downloaded IP: " + externalip);
+                        Program.Log.Info("Current IP: " + _externalIP);
+
                         if (_externalIP != externalip)
                         {
-                            var res = new WebClient().DownloadString($"http://mosalski.de/ip.php?hostname=a.mosalski.de&myip={externalip}");
+                            Program.Log.Info("Changing IP");
+                            var res = new WebClient().DownloadString($"http://mosalski.de/ip.php?hostname=a.mosalski.de&myip={externalip}&guid=6c37a4b2-9f0b-497f-9be8-7e9d3923c828");
+
+                            Program.Log.Info("Result: " + res);
                             if (res == "good" || res.Contains("nochg"))
                             {
+                                Program.Log.Info("Ip changed");
                                 _externalIP = externalip;
                             }
                         }
                     }
                     catch (Exception e)
                     {
-                        File.AppendAllText("error.txt", DateTime.Now.ToString("o") + FullException(e) + Environment.NewLine);
+                        Program.Log.Error("Error", e);
                     }
                 }, null, 0, 5 * 1000 * 60);
         }
