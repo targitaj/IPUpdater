@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -7,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentFTP;
+using Newtonsoft.Json;
 
 namespace IPUpdater
 {
@@ -32,14 +34,34 @@ namespace IPUpdater
                         if (_externalIP != externalip)
                         {
                             Program.Log.Info("Changing IP");
-                            var res = new WebClient().DownloadString($"http://mosalski.de/ip.php?hostname=a.mosalski.de&myip={externalip}&guid=6c37a4b2-9f0b-497f-9be8-7e9d3923c828");
+                            var mydomain = "mosalski.de";
+                            var myhostname = "a";
+                            var gdapikey = "9QCBbJDW9fJ_VW7EEyN9V9mKB8QxT4Vgtk:BXf8PgDpZDqZ9NnuFqd83F";
+                            var logdest = "local7.info";
 
-                            Program.Log.Info("Result: " + res);
-                            if (res == "good" || res.Contains("nochg"))
+                            var res = RunCurl($@"curl -X GET -H ""Authorization: sso-key {gdapikey}"" ""https://api.godaddy.com/v1/domains/{mydomain}/records/A/{myhostname}""");
+                            var ipData = JsonConvert.DeserializeObject<IPData[]>(res);
+
+                            if (ipData[0].data == externalip)
                             {
-                                Program.Log.Info("Ip changed");
-                                _externalIP = externalip;
+                                _externalIP = ipData[0].data;
                             }
+                            else
+                            {
+                                var command =
+                                    $@"curl -X PUT ""https://api.godaddy.com/v1/domains/{mydomain}/records/A/{myhostname}"" -H ""Authorization: sso-key {gdapikey}"" -H ""Content-Type: application/json"" -d ""[{{\""data\"": \""{externalip}\""}}]""";
+
+                                res = RunCurl(command);
+
+                                Program.Log.Info("Result: " + res);
+                                if (string.IsNullOrWhiteSpace(res))
+                                {
+                                    Program.Log.Info("Ip changed");
+                                    _externalIP = externalip;
+                                }
+                            }
+
+
                         }
                     }
                     catch (Exception e)
@@ -47,6 +69,30 @@ namespace IPUpdater
                         Program.Log.Error("Error", e);
                     }
                 }, null, 0, 5 * 1000 * 60);
+        }
+
+        public string RunCurl(string command)
+        {
+            using (var proc = new Process
+                   {
+                       StartInfo = new ProcessStartInfo
+                       {
+                           FileName = "curl.exe",
+                           Arguments = command,
+                           UseShellExecute = false,
+                           RedirectStandardOutput = true,
+                           RedirectStandardError = true,
+                           CreateNoWindow = true,
+                           WorkingDirectory = Environment.SystemDirectory
+                       }
+                   })
+            {
+                proc.Start();
+
+                proc.WaitForExit(5000);
+
+                return proc.StandardOutput.ReadToEnd();
+            }
         }
 
         private string FullException(Exception exception)
