@@ -35,15 +35,14 @@ namespace IPUpdater
                         if (_externalIP != externalip)
                         {
                             Program.Log.Info("Changing IP");
-                            var mydomain = "mosalski.de";
-                            var myhostname = "a";
+                            var mydomain = Configuration.MyDomain;
+                            var myhostname = Configuration.MyHostname;
                             var gdapikey = "9QCBbJDW9fJ_VW7EEyN9V9mKB8QxT4Vgtk:BXf8PgDpZDqZ9NnuFqd83F";
-                            var logdest = "local7.info";
 
                             var res = RunCurl($@"curl -X GET -H ""Authorization: sso-key {gdapikey}"" ""https://api.godaddy.com/v1/domains/{mydomain}/records/A/{myhostname}""");
                             var ipData = JsonConvert.DeserializeObject<IPData[]>(res);
 
-                            if (ipData[0].data == externalip)
+                            if (ipData.Length != 0 && ipData[0].data == externalip)
                             {
                                 _externalIP = ipData[0].data;
                             }
